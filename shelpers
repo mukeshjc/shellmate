@@ -1,0 +1,59 @@
+#!/bin/bash
+
+############################## aliases ##############################
+
+alias csvtojson='jq -R -s '\''
+  split("\n") |
+  .[0:1] as $headers |
+  .[1:-1] |
+  map(
+    select(length > 0) |
+    split(",") as $row |
+    [range(0; $headers[0]|split(",")|length)] as $i |
+    reduce $i[] as $ix ({};
+      . + {($headers[0]|split(",")[$ix]): $row[$ix]}
+    )
+  )
+'\'''
+
+alias files-intersection='comm -12'
+
+alias files-difference='comm -23'
+
+# Usage examples of files-* aliases:
+# files-intersection <(sort file1.txt) <(sort file2.txt)
+# files-difference <(sort file1.txt) <(sort file2.txt)
+
+############################## functions ##############################
+
+scpfrom() {
+	scp -ri ${HOME}/cloud-dev-server.pem ec2-user@${EC2_DEV_MACHINE_IP}:${1} ${2}
+}
+
+scpto() {
+	scp -ri ${HOME}/cloud-dev-server.pem ${1} ec2-user@${EC2_DEV_MACHINE_IP}:${2}
+}
+
+# one time syncing of a local directory content to the cloud dev machine
+sync() {
+	rsync -avz -e "ssh -i ~${HOME}/cloud-dev-server.pem" -r ${1} ec2-user@${EC2_DEV_MACHINE_IP}:${2}
+}
+
+# continuous syncing of a local directory content to the cloud dev machine - useful when actively developing
+# IDE's support remote sync OOTB however developing against a local fast copy (eg. on a flight) and syncing with cloud when needed is helpful to me
+# usually I run it as "contsync &"
+contsync() {
+	while true; do
+		# sync /Users/mukesh.choudhari/DevWorkspace /home/ec2-user/workspace
+		# sync /Users/mukesh.choudhari/GolandProjects /home/ec2-user/workspace
+		#### <add directories you'd like to keep in sync over here> ####
+		sleep 5 #### adjust the sync period to your taste ####
+	done
+}
+
+############################## export ##############################
+export -f scpfrom >/dev/null
+export -f scpto >/dev/null
+export -f sync >/dev/null
+export -f contsync >/dev/null
+
